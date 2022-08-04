@@ -8,7 +8,8 @@ import torch
 
 from src.rnn import (
     RNNCell,
-    RNNLayer
+    RNNLayer,
+    RNN
 )
 
 def rnn_cell_test():
@@ -46,10 +47,35 @@ def rnn_layer_test():
     
     output = rnn_layer(inputs, hidden)
     
-    # Check the shape of output and h_n
+    # Check the shape of output
     assert output.shape == (batch_size, len_sequence, hidden_size)
 
+
+def rnn_test():
+    # Prepare RNN instance and dummy data.
+    batch_size = 3
+    input_size = 10
+    hidden_size = 20
+    num_layers = 2
+    len_sequence = 5
+    
+    inputs = torch.randn(batch_size, len_sequence, input_size)
+    hidden = torch.randn(batch_size, num_layers, hidden_size)
+    
+    rnn = RNN(input_size,
+              hidden_size,
+              num_layers,
+              bias=True,
+              activation="tanh"
+             )
+    
+    output = rnn(inputs, hidden)
+    
+    # Check the shape of output
+    assert output.shape == (batch_size, len_sequence, hidden_size)
+    
 
 def test_main():
     rnn_cell_test()
     rnn_layer_test()
+    rnn_test()
