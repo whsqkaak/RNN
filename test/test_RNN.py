@@ -34,23 +34,20 @@ def rnn_layer_test():
     input_size = 10
     hidden_size = 20
     len_sequence = 8
-    num_classes = 8
     
     inputs = torch.randn(batch_size, len_sequence, input_size)
     hidden = torch.randn(batch_size, len_sequence, hidden_size)
     
     rnn_layer = RNNLayer(input_size, 
               hidden_size,
-              num_classes,
               bias=True,
               activation="tanh"
              )
     
-    output, h_n = rnn_layer(inputs, hidden)
+    output = rnn_layer(inputs, hidden)
     
     # Check the shape of output and h_n
-    assert output.shape == (batch_size, num_classes, num_classes)
-    assert h_n.shape == (batch_size, len_sequence, hidden_size)
+    assert output.shape == (batch_size, len_sequence, hidden_size)
 
 
 def test_main():

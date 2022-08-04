@@ -23,10 +23,10 @@ class RNNCell(nn.Module):
             
     Examples:
         
-        >>> rnn = RNNCell(10, 20)
         >>> batch_size = 3
         >>> input_size = 10
         >>> hidden_size = 20
+        >>> rnn = RNNCell(input_size, hidden_size)
         >>> inputs = torch.randn(batch_size, input_size)
         >>> hidden = torch.randn(batch_size, hidden_size)
         >>> hx = rnn(inputs, hidden)
@@ -119,8 +119,6 @@ class RNNLayer(nn.Module):
             The number of expected features in the input `x`.
         hidden_size:
             The number of features in the hidden state `h`.
-        num_classes:
-            The number of output classes.
         bias:
             If `False`, then the layer does not use bias.
         activation:
@@ -132,7 +130,6 @@ class RNNLayer(nn.Module):
         self,
         input_size: int,
         hidden_size: int,
-        num_classes: int,
         bias: bool = True,
         activation: str = "tanh"
     ) -> None:
@@ -143,9 +140,6 @@ class RNNLayer(nn.Module):
         
         # Stacking RNN layers
         self.rnn_cell = RNNCell(input_size, hidden_size, bias, activation)
-        
-        # Setting output layer
-        self.output_layer = nn.Linear(hidden_size, num_classes)
     
     def forward(
         self,
@@ -163,23 +157,19 @@ class RNNLayer(nn.Module):
                 
         Returns:
             output:
-                A tensor containing the output features from the last layer of the RNN.
-            h_n:
-                A tensor containing the final hidden state for each element in the batch.
+                A tensor containing the output features from the RNN layer.
                     
         Shape:
             inputs: `(L, H_{in})` or `(N, L, H_{in})`
             hidden: `(L, H_{out})` or `(N, L, H_{out})`
             Returns: 
-                output: `(L, num_classes)` or `(N, L, num_classes)`
-                h_n: `(L, H_{out})` or `(N, L, H_{out})`
+                output: `(L, H_{out})` or `(N, L, H_{out})`
             
             where
                 N is a batch size.
                 L is a sequnece length.
                 H_{in} is a input size.
                 H_{out} is a hidden size.
-                num_classes is a number of classes.
         """
         is_batched = inputs.dim() == 3
         if not is_batched:
@@ -195,22 +185,45 @@ class RNNLayer(nn.Module):
             # If not batched, `(L, H_{out})` -> `(1, L, H_{out})`
             hidden = hidden.unsqueeze(0) if not is_batched else hidden
             
-        h_n = []
+        output = []
         h_i = hidden[:, 0, :]
         
         for i in range(len_sequence):
             h_i = self.rnn_cell(inputs[:,i,:], h_i)
-            h_n.append(h_i)
+            output.append(h_i)
         
-        h_n = torch.stack(h_n, 1) # `(N, L, H_{out})`
-        
-        output = self.output_layer(h_n)
+        output = torch.stack(output, 1) # `(N, L, H_{out})`
         
         if not is_batched:
-            # `(1, L, num_classes)` -> `(L, num_classes)`
-            output = output.squeeze(0)
-            
             # `(1, L, H_{out})` -> `(L, H_{out})`
-            h_n = h_n.squeeze(0)
+            output = output.squeeze(0)
         
-        return output, h_n
+        return output
+    
+
+# class RNN(nn.module):
+#     """
+#     This class is a implementation of multi-layer RNN.
+    
+    
+    
+#     Examples:
+        
+#         >>> input_size = 10
+#         >>> hidden_size = 20
+#         >>> num_layers = 2
+#         >>> batch_size = 3
+#         >>> len_sequence = 5
+#         >>> rnn = RNN(input_size, hidden_size, num_layers)
+#         >>> inputs = torch.randn(batch_size, len_sequence, input_size)
+#         >>> hidden = torch.randn(batch_size, num_layers, hidden_size)
+#         >>> output, h_n = rnn(inputs, hidden)
+#     """
+    
+#     def __init__(
+#         self,
+#         input_size: int,
+#         hidden_size: int,
+#         num_classes: int,
+#         bias: bool = True,
+#         activation: str = "tanh"
