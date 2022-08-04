@@ -10,6 +10,10 @@ A recurrent neural network (RNN) is a class of artificial neural networks where 
 
 $$ h_{t} = tanh(W_{x} x_{t} + W_{h}h_{t−1} + b) $$
 
+## Reference
+- [RNN](https://wikidocs.net/48558)
+- [LSTM](https://wikidocs.net/22888)
+
 ## Author 
 - SeungHyun Lee [@whsqkaak](https://github.com/whsqkaak)
 - Contacts: whsqkaak@naver.com
