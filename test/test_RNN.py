@@ -36,7 +36,7 @@ def rnn_layer_test():
     len_sequence = 8
     
     inputs = torch.randn(batch_size, len_sequence, input_size)
-    hidden = torch.randn(batch_size, len_sequence, hidden_size)
+    hidden = torch.randn(batch_size, hidden_size)
     
     rnn_layer = RNNLayer(input_size, 
               hidden_size,

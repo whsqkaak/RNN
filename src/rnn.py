@@ -86,6 +86,7 @@ class RNNCell(nn.Module):
         dim_inputs = inputs.dim()
         assert dim_inputs in (1, 2), \
             f"RNNCell inputs to be 1-D or 2-D but received {dim_inputs}-D tensor"
+        
         is_batched = dim_inputs == 2
         if not is_batched:
             # `(H_{in})` -> `(1, H_{in})`
@@ -138,7 +139,6 @@ class RNNLayer(nn.Module):
         self.hidden_size = hidden_size
         self.bias = bias
         
-        # Stacking RNN layers
         self.rnn_cell = RNNCell(input_size, hidden_size, bias, activation)
     
     def forward(
@@ -161,7 +161,7 @@ class RNNLayer(nn.Module):
                     
         Shape:
             inputs: `(L, H_{in})` or `(N, L, H_{in})`
-            hidden: `(L, H_{out})` or `(N, L, H_{out})`
+            hidden: `(H_{out})` or `(N, H_{out})`
             Returns: 
                 output: `(L, H_{out})` or `(N, L, H_{out})`
             
@@ -171,32 +171,16 @@ class RNNLayer(nn.Module):
                 H_{in} is a input size.
                 H_{out} is a hidden size.
         """
-        is_batched = inputs.dim() == 3
-        if not is_batched:
-            # `(L, H_{in})` -> `(1, L, H_{in})`
-            inputs = inputs.unsqueeze(0)
         len_sequence = inputs.shape[1]
             
-        if hidden is None:
-            # Create initial hidden state.
-            # `(N, L, H_{out})`
-            hidden = torch.zeros(inputs.shape[0], len_sequence, self.hidden_size, dtype=inputs.dtype)
-        else:
-            # If not batched, `(L, H_{out})` -> `(1, L, H_{out})`
-            hidden = hidden.unsqueeze(0) if not is_batched else hidden
-            
         output = []
-        h_i = hidden[:, 0, :]
+        h_i = hidden
         
         for i in range(len_sequence):
             h_i = self.rnn_cell(inputs[:,i,:], h_i)
             output.append(h_i)
         
         output = torch.stack(output, 1) # `(N, L, H_{out})`
-        
-        if not is_batched:
-            # `(1, L, H_{out})` -> `(L, H_{out})`
-            output = output.squeeze(0)
         
         return output
     
@@ -205,7 +189,20 @@ class RNNLayer(nn.Module):
 #     """
 #     This class is a implementation of multi-layer RNN.
     
-    
+#     Args:
+#         input_size:
+#             The number of expected features in the input `x`.
+#         hidden_size:
+#             The number of features in the hidden state `h`.
+#         num_layers:
+#             The number of RNN layers. E.g. setting `num_layers=2`,
+#             it would mean stacking two RNNs together to form a `stacked RNN`,
+#             with the second RNN taking in outputs of the first RNN and
+#             computing the final results.
+#         bias:
+#             If `False`, then the layer does not use bias.
+#         activation:
+#             The activation function to use. Can be either `tanh` or `relu`.
     
 #     Examples:
         
@@ -224,6 +221,74 @@ class RNNLayer(nn.Module):
 #         self,
 #         input_size: int,
 #         hidden_size: int,
-#         num_classes: int,
+#         num_layers: int,
 #         bias: bool = True,
 #         activation: str = "tanh"
+#     ) -> None:
+#         super().__init__()
+#         self.input_size = input_size
+#         self.hidden_size = hidden_size
+#         self.num_layers = num_layers
+#         self.bias = bias
+        
+#         # Stacking RNN layers
+#         first_layer = RNNLayer(input_size, hidden_size, bias, activation)
+#         rnn_layer = RNNLayer(hidden_size, hidden_size, bias, activation)
+#         layers = [first_layer] + [rnn_layer for _ in range(num_layers)]
+#         self.layers = nn.ModuleList(layers)
+        
+#     def forward(
+#         self,
+#         inputs: Tensor,
+#         hidden: Optional[Tensor] = None
+#     ) -> Tensor:
+#         """
+#         Pass inputs through a RNN.
+        
+#         Args:
+#             inputs:
+#                 A tensor containing input features.
+#             hidden:
+#                 A tensor containing the initial hidden state.
+                
+#         Returns:
+#             output:
+#                 A tensor containing the output features from the RNN.
+                    
+#         Shape:
+#             inputs: `(L, H_{in})` or `(N, L, H_{in})`
+#             hidden: `(L, H_{out})` or `(N, L, H_{out})`
+#             Returns: 
+#                 output: `(L, H_{out})` or `(N, L, H_{out})`
+            
+#             where
+#                 N is a batch size.
+#                 L is a sequnece length.
+#                 H_{in} is a input size.
+#                 H_{out} is a hidden size.
+#         """
+#         is_batched = inputs.dim() == 3
+#         if not is_batched:
+#             # `(L, H_{in})` -> `(1, L, H_{in})`
+#             inputs = inputs.unsqueeze(0)
+#         len_sequence = inputs.shape[1]
+            
+#         if hidden is None:
+#             # Create initial hidden state.
+#             # `(N, L, H_{out})`
+#             hidden = torch.zeros(inputs.shape[0], len_sequence, self.hidden_size, dtype=inputs.dtype)
+#         else:
+#             # If not batched, `(L, H_{out})` -> `(1, L, H_{out})`
+#             hidden = hidden.unsqueeze(0) if not is_batched else hidden
+            
+#         output = inputs
+        
+#         for i, rnn_layer in enumerate(self.layers):
+            
+       
+        
+#         if not is_batched:
+#             # `(1, L, H_{out})` -> `(L, H_{out})`
+#             output = output.squeeze(0)
+        
+#         return output
