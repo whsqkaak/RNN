@@ -171,13 +171,16 @@ class RNNLayer(nn.Module):
                 H_{in} is a input size.
                 H_{out} is a hidden size.
         """
-        len_sequence = inputs.shape[1]
-            
+        if inputs.dim() == 3:
+            # Transpose inputs tensor for simpler compute code.
+            # `(N, L, H_{in})` -> `(L, N, H_{in})`
+            inputs = inputs.transpose(0, 1).contiguous()
+        
         output = []
         h_i = hidden
         
-        for i in range(len_sequence):
-            h_i = self.rnn_cell(inputs[:,i,:], h_i)
+        for x_i in inputs:
+            h_i = self.rnn_cell(x_i, h_i)
             output.append(h_i)
         
         output = torch.stack(output, 1) # `(N, L, H_{out})`
@@ -268,12 +271,13 @@ class RNN(nn.Module):
                 H_{out} is a hidden size.
                 num_layers is a number of layers.
         """
-        if hidden.dim() == 2:
-            # Not batched
-            # `(num_layers, H_{out})` -> `(1, num_layers, H_{out})`
-            hidden = hidden.unsqueeze(0)
+        if hidden.dim() == 3:
+            # Transpose hidden tensor for simpler compute code.
+            # `(N, num_layers, H_{out})` -> `(num_layers, N, H_{out})`
+            hidden = hidden.transpose(0, 1).contiguous()
+            
         output = inputs
         for i, rnn_layer in enumerate(self.layers):
-            output = rnn_layer(output, hidden[:, i, :])
+            output = rnn_layer(output, hidden[i])
        
         return output
