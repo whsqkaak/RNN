@@ -183,7 +183,7 @@ class RNNLayer(nn.Module):
             h_i = self.rnn_cell(x_i, h_i)
             output.append(h_i)
         
-        output = torch.stack(output, 1) # `(N, L, H_{out})`
+        output = torch.stack(output, -2) # `(N, L, H_{out})`
         
         return output
     

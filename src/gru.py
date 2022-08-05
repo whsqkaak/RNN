@@ -60,8 +60,7 @@ class GRUCell(nn.Module):
         
         Shape:
             inputs: `(H_{in})` or `(N, H_{in})`
-            state: `(h_0, c_0)`
-                h_0: `(H_{out})` or `(N, H_{out})`
+            hidden: `(H_{out})` or `(N, H_{out})`
             Returns:
                 h_1: `(H_{out})` or `(N, H_{out})`
             
@@ -106,3 +105,87 @@ class GRUCell(nn.Module):
         linear_input = nn.Linear(self.input_size, self.hidden_size, bias=self.bias)
         linear_hidden = nn.Linear(self.hidden_size, self.hidden_size, bias=self.bias)
         return linear_input(inputs) + linear_hidden(hidden)
+    
+    
+class GRULayer(nn.Module):
+    """
+    This class is implementation of GRU Layer.
+    
+    Args:
+        input_size:
+            The number of expected features in the input `x`
+        hidden_size:
+            The number of featrues in the hidden state `h`
+        bias:
+            If `False`, the the layer does not use bias.
+            
+    Examples:
+        
+        >>> batch_size = 3
+        >>> input_size = 10
+        >>> hidden_size = 20
+        >>> len_sequence = 8
+        >>> gru = GRULayer(input_size, hidden_size)
+        >>> inputs = torch.randn(batch_size, len_sequence, input_size)
+        >>> h_0 = torch.randn(batch_size, hidden_size)
+        >>> h_n = gru(inputs, h_0)
+    """
+    
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        bias: bool = True
+    ) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.bias = bias
+        self.cell = GRUCell(
+            input_size,
+            hidden_size,
+            bias
+        )
+        
+    def forward(
+        self,
+        inputs: Tensor,
+        hidden: Tensor
+    ) -> Tensor:
+        """
+        Pass inputs through a GRU Layer.
+        
+        Args:
+            inputs:
+                A tensor containing input features. `x`
+            hidden:
+                A tensor contatining the initial hidden state. `h_0`
+            
+        Returns:
+            A tensor containing output features from the GRU Layer.
+        
+        Shape:
+            inputs: `(L, H_{in})` or `(N, L, H_{in})`
+            hidden: `(H_{out})` or `(N, H_{out})`
+            Returns:
+                output: `(L, H_{out})` or `(N, L, H_{out})`
+            
+            where
+                N is a batch size.
+                L is a sequence length.
+                H_{in} is a input size.
+                H_{out} is a hidden size.
+        """
+        if inputs.dim() == 3:
+            # Transpose inputs tensor for simpler compute code.
+            # `(N, L, H_{in})` -> `(L, N, H_{in})`
+            inputs = inputs.transpose(0, 1).contiguous()
+            
+        output = []
+        
+        for x_i in inputs:
+            hidden = self.cell(x_i, hidden)
+            output.append(hidden)
+            
+        output = torch.stack(output, -2) # `(N, L, H_{out})`
+        return output

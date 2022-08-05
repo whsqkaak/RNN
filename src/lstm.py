@@ -203,7 +203,7 @@ class LSTMLayer(nn.Module):
             h_i, c_i = self.cell(x_i, (h_i, c_i))
             output.append(h_i)
             
-        output = torch.stack(output, 1) # `(N, L, H_{out})`
+        output = torch.stack(output, -2) # `(N, L, H_{out})`
         return output, (h_i, c_i)
     
 
