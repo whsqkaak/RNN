@@ -140,7 +140,7 @@ class LSTMLayer(nn.Module):
         >>> inputs = torch.randn(batch_size, len_sequence, input_size)
         >>> h_0 = torch.randn(batch_size, hidden_size)
         >>> c_0 = torch.randn(batch_size, hidden_size)
-        >>> h_1, c_1 = lstm(inputs, (h_0, c_0))
+        >>> output, (h_n, c_n) = lstm(inputs, (h_0, c_0))
     """
     
     def __init__(
@@ -205,3 +205,100 @@ class LSTMLayer(nn.Module):
             
         output = torch.stack(output, 1) # `(N, L, H_{out})`
         return output, (h_i, c_i)
+    
+
+class LSTM(nn.Module):
+    """
+    This class is implementation of LSTM.
+    
+    Args:
+        input_size:
+            The number of expected features in the input `x`
+        hidden_size:
+            The number of features in the hidden state `h`
+        num_layers:
+            The number of LSTM layers.
+        bias:
+            If `False`, then the layer does not use bias.
+    
+    Examples:
+        
+        >>> batch_size = 3
+        >>> input_size = 10
+        >>> hidden_size = 20
+        >>> len_sequence = 8
+        >>> num_layers = 2
+        >>> lstm = LSTM(input_size, hidden_size, num_layers)
+        >>> inputs = torch.randn(batch_size, len_sequence, input_size)
+        >>> h_0 = torch.randn(batch_size, num_layers, hidden_size)
+        >>> c_0 = torch.randn(batch_size, num_layers, hidden_size)
+        >>> output, (h_n, c_n) = lstm(inputs, (h_0, c_0))
+    """
+    
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_layers: int,
+        bias: bool = True
+    ) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        
+        # Stacking LSTM layers.
+        first_layer = LSTMLayer(input_size, hidden_size, bias)
+        lstm_layer = LSTMLayer(hidden_size, hidden_size, bias)
+        layers = [first_layer] + [lstm_layer for _ in range(1, num_layers)]
+        self.layers = nn.ModuleList(layers)
+        
+    def forward(
+        self,
+        inputs: Tensor,
+        state: Tuple[Tensor, Tensor] = None
+    ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
+        """
+        Args:
+            inputs:
+                A tensor containing input features. `x`
+            state:
+                A tuple containing the initial hidden state and the initial cell state. `(h_0, c_0)`
+                
+        Returns:
+            A tuple containing next two elements.
+                - A tensor containing output features from the LSTM.
+                - A tuple containing the last hidden state and the last cell state
+                    
+        Shape:
+            inputs: `(L, H_{in})` or `(N, L, H_{in})`
+            state: `(h_0, c_0)`
+                h_0: `(num_layers, H_{out})` or `(N, num_layers, H_{out})`
+                c_0: `(num_layers, H_{out})` or `(N, num_layers, H_{out})`
+            Returns: `(output, (h_n, c_n))`
+                output: `(L, H_{out})` or `(N, L, H_{out})`
+                h_1: `(H_{out})` or `(N, H_{out})`
+                c_1: `(H_{out})` or `(N, H_{out})`
+            
+            where
+                N is a batch size.
+                L is a sequence length.
+                H_{in} is a input size.
+                H_{out} is a hidden size.
+                num_layers is a number of layers.
+        """
+        h_0, c_0 = state
+        if h_0.dim() == 3:
+            # Transpose hidden tensor for simpler compute code.
+            # `(N, num_layers, H_{out})` -> `(num_layers, N, H_{out})`
+            h_0 = h_0.transpose(0, 1).contiguous()
+        if c_0.dim() == 3:
+            # Transpose cell state tensor for simpler compute code.
+            # `(N, num_layers, H_{out})` -> `(num_layers, N, H_{out})`
+            c_0 = c_0.transpose(0, 1).contiguous()
+            
+        output = inputs
+        for i, layer in enumerate(self.layers):
+            output, state = layer(output, (h_0[i], c_0[i]))
+        
+        return output, state
