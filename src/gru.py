@@ -128,7 +128,7 @@ class GRULayer(nn.Module):
         >>> gru = GRULayer(input_size, hidden_size)
         >>> inputs = torch.randn(batch_size, len_sequence, input_size)
         >>> h_0 = torch.randn(batch_size, hidden_size)
-        >>> h_n = gru(inputs, h_0)
+        >>> output = gru(inputs, h_0)
     """
     
     def __init__(
@@ -188,4 +188,91 @@ class GRULayer(nn.Module):
             output.append(hidden)
             
         output = torch.stack(output, -2) # `(N, L, H_{out})`
+        return output
+    
+    
+class GRU(nn.Module):
+    """
+    This class is implementation of GRU.
+    
+    Args:
+        input_size:
+            The number of expected features in the input `x`
+        hidden_size:
+            The number of featrues in the hidden state `h`
+        num_layers:
+            The number of GRU layers.
+        bias:
+            If `False`, the the layer does not use bias.
+            
+    Examples:
+        
+        >>> batch_size = 3
+        >>> input_size = 10
+        >>> hidden_size = 20
+        >>> len_sequence = 8
+        >>> num_layers = 2
+        >>> gru = GRULayer(input_size, hidden_size, num_layers)
+        >>> inputs = torch.randn(batch_size, len_sequence, input_size)
+        >>> h_0 = torch.randn(batch_size, num_layers, hidden_size)
+        >>> output = gru(inputs, h_0)
+    """
+    
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_layers: int,
+        bias: bool = True
+    ) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        
+        # Stacking GRU layers.
+        first_layer = GRULayer(input_size, hidden_size, bias)
+        gru_layer = GRULayer(hidden_size, hidden_size, bias)
+        layers = [first_layer] + [gru_layer for _ in range(1, num_layers)]
+        self.layers = nn.ModuleList(layers)
+        
+    def forward(
+        self,
+        inputs: Tensor,
+        hidden: Tensor
+    ) -> Tensor:
+        """
+        Pass inputs through a GRU.
+        
+        Args:
+            inputs:
+                A tensor containing input features. `x`
+            hidden:
+                A tensor contatining the initial hidden state. `h_0`
+            
+        Returns:
+            A tensor containing output features from the GRU.
+        
+        Shape:
+            inputs: `(L, H_{in})` or `(N, L, H_{in})`
+            hidden: `(num_layers, H_{out})` or `(N, num_layers, H_{out})`
+            Returns:
+                output: `(L, H_{out})` or `(N, L, H_{out})`
+            
+            where
+                N is a batch size.
+                L is a sequence length.
+                H_{in} is a input size.
+                H_{out} is a hidden size.
+                num_layers is a number of layers.
+        """
+        if hidden.dim() == 3:
+            # Transpose hidden tensor for simpler compute code.
+            # `(N, L, H_{out})` -> `(L, N, H_{out})`
+            hidden = hidden.transpose(0, 1).contiguous()
+            
+        output = inputs
+        for i, layer in enumerate(self.layers):
+            output = layer(output, hidden[i])
+            
         return output

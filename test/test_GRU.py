@@ -9,6 +9,7 @@ import torch
 from src.gru import (
     GRUCell,
     GRULayer,
+    GRU
 )
 
 def gru_cell_test():
@@ -34,11 +35,29 @@ def gru_layer_test():
     inputs = torch.randn(batch_size, len_sequence, input_size)
     hidden = torch.randn(batch_size, hidden_size)
     
-    gru = GRULayer(input_size, hidden)
+    gru = GRULayer(input_size, hidden_size)
     
-    h_n = gru(inputs, hidden)
+    output = gru(inputs, hidden)
     
-    assert h_n.shape == (batch_size, len_sequence, hidden_size)
+    assert output.shape == (batch_size, len_sequence, hidden_size)
+    
+def gru_test():
+    batch_size = 3
+    input_size = 10
+    hidden_size = 20
+    len_sequence = 8
+    num_layers = 2
+    
+    inputs = torch.randn(batch_size, len_sequence, input_size)
+    hidden = torch.randn(batch_size, num_layers, hidden_size)
+    
+    gru = GRU(input_size, hidden_size, num_layers)
+    
+    output = gru(inputs, hidden)
+    
+    assert output.shape == (batch_size, len_sequence, hidden_size)
     
 def test_main():
-    gru_cell_test()
+    # gru_cell_test()
+    # gru_layer_test()
+    gru_test()
