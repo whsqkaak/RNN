@@ -217,7 +217,7 @@ class RNN(nn.Module):
         >>> rnn = RNN(input_size, hidden_size, num_layers)
         >>> inputs = torch.randn(batch_size, len_sequence, input_size)
         >>> hidden = torch.randn(batch_size, num_layers, hidden_size)
-        >>> output, h_n = rnn(inputs, hidden)
+        >>> output = rnn(inputs, hidden)
     """
     
     def __init__(
